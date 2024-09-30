@@ -22,6 +22,7 @@
                 let desa = data['lokasi']['desa']
                 let kec = data['lokasi']['kecamatan']
                 let kota = data['lokasi']['kota']
+                let temp = data['lokasi']['t']
                 let lokasi = desa + ', ' + kec + ', ' + kota
                 $('#lokasi').html(lokasi)
 
@@ -33,20 +34,9 @@
                     col.append(card)
                     card.append(`<img style="width:60px;" src="${val.image}">`)
                     card.append(`<div>${val.local_datetime}</div>`)
-                    card.append(`<div>${val.weather_desc}</div>`)
+                    card.append(`<div>${val.weather_desc} (${val.t}°C)</div>`)
                 })
                 console.log(data)
-                return;
-                // Misal ambil beberapa data utama saja, seperti suhu dan kondisi cuaca
-                const suhu = data[0].parameter.temp;
-                const kondisiCuaca = data[0].parameter.weather;
-
-                // Tampilkan di console atau kirim ke halaman Home Assistant
-                console.log(`Suhu: ${data['data'][0]['cuaca'][0][0]['weather_desc']}°C, Kondisi Cuaca: ${kondisiCuaca}`);
-
-                // Update ke elemen HTML (halaman Home Assistant) jika diperlukan
-                document.getElementById('suhu').textContent = `Suhu: ${suhu}°C`;
-                document.getElementById('cuaca').textContent = `Cuaca: ${kondisiCuaca}`;
 
             } catch (error) {
                 console.error("Gagal mengambil data dari BMKG", error);
