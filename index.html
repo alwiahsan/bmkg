@@ -3,15 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BMKG</title>
+    <title>Prakiraan Cuaca BMKG - Lengkap</title>
+    <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .weather-card {
+            transition: transform 0.2s;
+        }
+        .weather-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+    </style>
 </head>
 <body>
-    <div id="lokasi"></div>
-    <div id="suhu"></div>
-    <div id="cuaca" class="row"></div>
-    <script src="jquery-3.7.1.min.js"></script>
+    <div class="container py-5">
+        <div class="row mb-4">
+            <div class="col-12 text-center">
+                <h1 class="display-6 fw-bold text-primary">Prakiraan Cuaca BMKG</h1>
+                <h4 id="lokasi" class="text-secondary">Memuat lokasi...</h4>
+                <h3 id="suhu" class="fw-bold text-dark mt-2"></h3>
+            </div>
+        </div>
+
+        <!-- Wadah untuk menampung data cuaca berdasarkan hari -->
+        <div id="cuaca-container"></div>
+    </div>
+
+    <!-- jQuery & Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
+    
     <script>
         async function getBMKGCuaca() {
             const url = 'https://api.bmkg.go.id/publik/prakiraan-cuaca?adm4=35.02.15.2002';
@@ -19,33 +45,77 @@
                 const response = await fetch(url);
                 const data = await response.json();
 
-                let desa = data['lokasi']['desa']
-                let kec = data['lokasi']['kecamatan']
-                let kota = data['lokasi']['kota']
-                let temp = data['lokasi']['t']
-                let lokasi = desa + ', ' + kec + ', ' + kota
-                $('#lokasi').html(lokasi)
+                // 1. Ambil Informasi Lokasi & Suhu Saat Ini
+                const lokasiObj = data.lokasi;
+                const textLokasi = `${lokasiObj.desa}, ${lokasiObj.kecamatan}, ${lokasiObj.kota}, ${lokasiObj.provinsi}`;
+                $('#lokasi').text(textLokasi);
+                $('#suhu').html(`Suhu Saat Ini: <span class="text-danger">${lokasiObj.t}°C</span>`);
 
-                $('#cuaca').html('')
-                $.each(data['data'][0]['cuaca'][0], function (key, val) {
-                    col = $('<div class="col-md-3">')
-                    card = $('<div class="card">')
-                    $('#cuaca').append(col)
-                    col.append(card)
-                    card.append(`<img style="width:60px;" src="${val.image}">`)
-                    card.append(`<div>${val.local_datetime}</div>`)
-                    card.append(`<div>${val.weather_desc} (${val.t}°C)</div>`)
-                })
-                console.log(data)
+                // 2. Kosongkan container sebelum mengisi data baru
+                $('#cuaca-container').html('');
+
+                // 3. Maksimalkan data: Iterasi semua hari (data['data'])
+                $.each(data.data, function (index, dayData) {
+                    // Ambil tanggal dari data harian (misal: hari ke-0, ke-1, dst)
+                    // Struktur BMKG biasanya menyediakan parameter tanggal di level dayData
+                    let hariLabel = dayData.lokasi?.hariku || `Prakiraan Hari ke-${index + 1}`;
+                    
+                    // Buat section/card wrapper untuk setiap hari
+                    let daySection = $(`
+                        <div class="card mb-4 shadow-sm">
+                            <div class="card-header bg-primary text-white fw-bold">
+                                ${hariLabel}
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3 row-cols-1 row-cols-sm-2 row-cols-md-4 row-cols-lg-6" id="day-slots-${index}">
+                                </div>
+                            </div>
+                        </div>
+                    `);
+
+                    $('#cuaca-container').append(daySection);
+
+                    // 4. Iterasi slot waktu cuaca dalam hari tersebut (cuaca[0] berisi array per jam/waktu)
+                    if (dayData.cuaca && dayData.cuaca.length > 0) {
+                        // BMKG kadang membungkus array cuaca di dalam array bersarang (cuaca[0])
+                        let cuacaList = Array.isArray(dayData.cuaca[0]) ? dayData.cuaca[0] : dayData.cuaca;
+
+                        $.each(cuacaList, function (key, val) {
+                            // Format waktu (ambil jamnya saja atau gunakan local_datetime)
+                            let waktuStr = val.local_datetime ? val.local_datetime.split(' ')[1] || val.local_datetime : '';
+                            let tanggalStr = val.local_datetime ? val.local_datetime.split(' ')[0] : '';
+
+                            let cardSlot = $(`
+                                <div class="col">
+                                    <div class="card h-100 text-center p-2 weather-card border">
+                                        <div class="text-muted small fw-bold">${tanggalStr}</div>
+                                        <div class="text-primary fw-bold mb-1">${waktuStr}</div>
+                                        <div class="d-flex justify-content-center my-2">
+                                            <img src="${val.image}" alt="${val.weather_desc}" style="width: 50px; height: 50px; object-fit: contain;">
+                                        </div>
+                                        <div class="card-body p-1 d-flex flex-column justify-content-between">
+                                            <p class="card-text small fw-semibold mb-1 text-dark">${val.weather_desc}</p>
+                                            <span class="badge bg-light text-dark border">${val.t}°C</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            `);
+
+                            $(`#day-slots-${index}`).append(cardSlot);
+                        });
+                    }
+                });
+
+                console.log("Data BMKG berhasil dimuat secara penuh:", data);
 
             } catch (error) {
                 console.error("Gagal mengambil data dari BMKG", error);
+                $('#lokasi').text('Gagal memuat data cuaca.');
             }
         }
 
-        // Jalankan fungsi untuk mengambil data cuaca
+        // Jalankan fungsi
         getBMKGCuaca();
-
     </script>
 </body>
 </html>
