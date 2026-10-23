@@ -1,121 +1,1240 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prakiraan Cuaca BMKG - Lengkap</title>
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
-        integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0759b7">
+    <title>Cuaca BMKG | Prakiraan Cuaca</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
     <style>
+        :root {
+            --blue: #0866cc;
+            --blue-dark: #07316e;
+            --bg: #f3f8fd;
+            --muted: #647b98;
+            --border: #e0eaf6;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
         body {
-            background-color: #f8f9fa;
+            margin: 0;
+            background: var(--bg);
+            color: #102b50;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
         }
-        .weather-card {
-            transition: transform 0.2s;
+
+        .topbar {
+            background: linear-gradient(120deg, #dceeff, #ffffff 55%, #c6e3ff);
+            border-bottom: 1px solid #cfe4fb;
         }
-        .weather-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+
+        .brand-icon {
+            display: grid;
+            place-items: center;
+            width: 53px;
+            height: 53px;
+            border-radius: 50%;
+            color: white;
+            font-size: 27px;
+            background: linear-gradient(145deg, #0876ed, #064a9d);
+            box-shadow: 0 5px 15px #0b63c52c;
         }
-    </style>
-</head>
-<body>
-    <div class="container py-5">
-        <div class="row mb-4">
-            <div class="col-12 text-center">
-                <h1 class="display-6 fw-bold text-primary">Prakiraan Cuaca BMKG</h1>
-                <h4 id="lokasi" class="text-secondary">Memuat lokasi...</h4>
-                <h3 id="suhu" class="fw-bold text-dark mt-2"></h3>
-            </div>
-        </div>
 
-        <!-- Wadah untuk menampung data cuaca berdasarkan hari -->
-        <div id="cuaca-container"></div>
-    </div>
+        .brand-name {
+            font-size: 23px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            color: var(--blue-dark);
+        }
 
-    <!-- jQuery & Bootstrap JS -->
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <script>
-        async function getBMKGCuaca() {
-            const url = 'https://api.bmkg.go.id/publik/prakiraan-cuaca?adm4=35.02.15.2002';
-            try {
-                const response = await fetch(url);
-                const data = await response.json();
+        .brand-subtitle {
+            font-size: 11px;
+            color: var(--muted);
+        }
 
-                // 1. Ambil Informasi Lokasi & Suhu Saat Ini
-                const lokasiObj = data.lokasi;
-                const textLokasi = `${lokasiObj.desa}, ${lokasiObj.kecamatan}, ${lokasiObj.kota}, ${lokasiObj.provinsi}`;
-                $('#lokasi').text(textLokasi);
-                $('#suhu').html(`Suhu Saat Ini: <span class="text-danger">${lokasiObj.t}°C</span>`);
+        .page {
+            max-width: 1550px;
+            margin: auto;
+            padding: 22px;
+        }
 
-                // 2. Kosongkan container sebelum mengisi data baru
-                $('#cuaca-container').html('');
+        .panel {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 17px;
+            padding: 22px;
+            box-shadow: 0 5px 22px #173c6507;
+            margin-bottom: 18px;
+        }
 
-                // 3. Maksimalkan data: Iterasi semua hari (data['data'])
-                $.each(data.data, function (index, dayData) {
-                    // Ambil tanggal dari data harian (misal: hari ke-0, ke-1, dst)
-                    // Struktur BMKG biasanya menyediakan parameter tanggal di level dayData
-                    let hariLabel = dayData.lokasi?.hariku || `Prakiraan Hari ke-${index + 1}`;
-                    
-                    // Buat section/card wrapper untuk setiap hari
-                    let daySection = $(`
-                        <div class="card mb-4 shadow-sm">
-                            <div class="card-header bg-primary text-white fw-bold">
-                                ${hariLabel}
-                            </div>
-                            <div class="card-body">
-                                <div class="row g-3 row-cols-1 row-cols-sm-2 row-cols-md-4 row-cols-lg-6" id="day-slots-${index}">
-                                </div>
-                            </div>
-                        </div>
-                    `);
+        .location-title {
+            font-size: clamp(18px, 2vw, 24px);
+            font-weight: 800;
+            letter-spacing: -.5px;
+        }
 
-                    $('#cuaca-container').append(daySection);
+        .muted {
+            color: var(--muted);
+        }
 
-                    // 4. Iterasi slot waktu cuaca dalam hari tersebut (cuaca[0] berisi array per jam/waktu)
-                    if (dayData.cuaca && dayData.cuaca.length > 0) {
-                        // BMKG kadang membungkus array cuaca di dalam array bersarang (cuaca[0])
-                        let cuacaList = Array.isArray(dayData.cuaca[0]) ? dayData.cuaca[0] : dayData.cuaca;
+        .current-weather {
+            background: linear-gradient(120deg, #eef7ff, #fff);
+            border: 1px solid #e1efff;
+            border-radius: 15px;
+            padding: 22px;
+        }
 
-                        $.each(cuacaList, function (key, val) {
-                            // Format waktu (ambil jamnya saja atau gunakan local_datetime)
-                            let waktuStr = val.local_datetime ? val.local_datetime.split(' ')[1] || val.local_datetime : '';
-                            let tanggalStr = val.local_datetime ? val.local_datetime.split(' ')[0] : '';
+        .main-temp {
+            font-size: clamp(48px, 6vw, 76px);
+            line-height: 1;
+            font-weight: 800;
+            letter-spacing: -4px;
+        }
 
-                            let cardSlot = $(`
-                                <div class="col">
-                                    <div class="card h-100 text-center p-2 weather-card border">
-                                        <div class="text-muted small fw-bold">${tanggalStr}</div>
-                                        <div class="text-primary fw-bold mb-1">${waktuStr}</div>
-                                        <div class="d-flex justify-content-center my-2">
-                                            <img src="${val.image}" alt="${val.weather_desc}" style="width: 50px; height: 50px; object-fit: contain;">
-                                        </div>
-                                        <div class="card-body p-1 d-flex flex-column justify-content-between">
-                                            <p class="card-text small fw-semibold mb-1 text-dark">${val.weather_desc}</p>
-                                            <span class="badge bg-light text-dark border">${val.t}°C</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            `);
+        .weather-icon {
+            width: 90px;
+            height: 90px;
+            object-fit: contain;
+        }
 
-                            $(`#day-slots-${index}`).append(cardSlot);
-                        });
-                    }
-                });
+        .weather-icon-lg {
+            width: 120px;
+            height: 120px;
+            object-fit: contain;
+        }
 
-                console.log("Data BMKG berhasil dimuat secara penuh:", data);
+        .weather-description {
+            font-size: 19px;
+            font-weight: 700;
+        }
 
-            } catch (error) {
-                console.error("Gagal mengambil data dari BMKG", error);
-                $('#lokasi').text('Gagal memuat data cuaca.');
+        .metric {
+            padding: 15px 12px;
+            height: 100%;
+            border-left: 1px solid var(--border);
+        }
+
+        .metric-icon {
+            color: var(--blue);
+            font-size: 20px;
+        }
+
+        .metric-label {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .metric-value {
+            font-size: 16px;
+            font-weight: 700;
+            overflow-wrap: anywhere;
+        }
+
+        .section-title {
+            font-size: 19px;
+            font-weight: 800;
+            letter-spacing: -.4px;
+        }
+
+        .section-icon {
+            display: inline-grid;
+            place-items: center;
+            width: 35px;
+            height: 35px;
+            border-radius: 10px;
+            background: #e6f2ff;
+            color: var(--blue);
+            font-size: 19px;
+            margin-right: 9px;
+        }
+
+        .day-tabs {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            padding-bottom: 5px;
+        }
+
+        .day-tab {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: #fff;
+            color: #47627f;
+            padding: 10px 18px;
+            white-space: nowrap;
+            min-width: 110px;
+            text-align: center;
+        }
+
+        .day-tab.active {
+            color: #fff;
+            background: var(--blue);
+            border-color: var(--blue);
+        }
+
+        .forecast-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .forecast-card {
+            border: 1px solid var(--border);
+            border-radius: 13px;
+            padding: 16px 12px;
+            background: linear-gradient(180deg, #fff, #fafdff);
+            min-width: 0;
+            transition: .2s;
+        }
+
+        .forecast-card:hover {
+            border-color: #85bfff;
+            transform: translateY(-2px);
+            box-shadow: 0 7px 20px #0a62bd10;
+        }
+
+        .forecast-time {
+            font-weight: 700;
+            color: #284d79;
+        }
+
+        .forecast-temp {
+            font-size: 27px;
+            font-weight: 800;
+            letter-spacing: -1px;
+        }
+
+        .forecast-desc {
+            min-height: 35px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .forecast-detail {
+            font-size: 12px;
+            color: #58718f;
+            display: flex;
+            align-items: flex-start;
+            gap: 7px;
+            margin-top: 10px;
+        }
+
+        .forecast-detail i {
+            color: var(--blue);
+            font-size: 15px;
+            flex-shrink: 0;
+        }
+
+        .stat-card {
+            height: 100%;
+            padding: 17px;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 13px;
+        }
+
+        .stat-number {
+            font-size: 25px;
+            font-weight: 800;
+            margin-top: 8px;
+        }
+
+        .rain-bar {
+            height: 7px;
+            background: #e6f0fc;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .rain-bar>div {
+            height: 100%;
+            background: linear-gradient(90deg, #55a9ff, #0872e4);
+            border-radius: inherit;
+        }
+
+        .summary-box {
+            padding: 18px;
+            border-radius: 13px;
+            background: #eff7ff;
+            color: #355779;
+            line-height: 1.9;
+        }
+
+        .source-box {
+            background: #edf9f3;
+            border: 1px solid #d5f1e1;
+            border-radius: 13px;
+            padding: 18px;
+        }
+
+        .map-placeholder {
+            background: linear-gradient(145deg, #e8f3e9, #e4f0fa);
+            min-height: 180px;
+            border-radius: 13px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #456b91;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .map-placeholder i {
+            font-size: 34px;
+            color: var(--blue);
+        }
+
+        .btn-blue {
+            background: var(--blue);
+            border-color: var(--blue);
+            color: white;
+            border-radius: 9px;
+            padding: 9px 14px;
+            font-weight: 600;
+        }
+
+        .btn-blue:hover {
+            background: #0754a8;
+            color: white;
+        }
+
+        .loading {
+            padding: 55px 10px;
+            text-align: center;
+            color: var(--muted);
+        }
+
+        .error-box {
+            background: #fff0f0;
+            border: 1px solid #ffcaca;
+            color: #a52626;
+            border-radius: 12px;
+            padding: 15px;
+        }
+
+        .footer {
+            color: var(--muted);
+            text-align: center;
+            font-size: 12px;
+            padding: 12px 0 24px;
+        }
+
+        @media (max-width: 992px) {
+            .forecast-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+
+            .metric {
+                border-left: 0;
             }
         }
 
-        // Jalankan fungsi
-        getBMKGCuaca();
+        @media (max-width: 576px) {
+            .page {
+                padding: 12px;
+            }
+
+            .panel {
+                padding: 15px;
+                border-radius: 13px;
+            }
+
+            .forecast-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 9px;
+            }
+
+            .weather-icon-lg {
+                width: 78px;
+                height: 78px;
+            }
+
+            .main-temp {
+                font-size: 53px;
+            }
+
+            .brand-subtitle {
+                max-width: 220px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header class="topbar">
+        <div class="container-fluid px-3 px-lg-4 py-3">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="brand-icon">
+                        <i class="bi bi-cloud-sun-fill"></i>
+                    </div>
+                    <div>
+                        <div class="brand-name">BMKG</div>
+                        <div class="brand-subtitle">
+                            Badan Meteorologi, Klimatologi, dan Geofisika
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-3 flex-wrap">
+                    <span class="muted small" id="update-time">
+                        <i class="bi bi-arrow-repeat"></i> Memuat data...
+                    </span>
+                    <button id="refresh-btn" class="btn btn-blue" onclick="loadWeather()">
+                        <i class="bi bi-arrow-clockwise me-1"></i> Perbarui
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="page">
+        <div id="app-status"></div>
+
+        <!-- Informasi lokasi dan cuaca utama -->
+        <section class="panel">
+            <div class="row g-4">
+                <div class="col-lg-8">
+                    <div class="d-flex align-items-start gap-3 mb-4">
+                        <i class="bi bi-geo-alt-fill text-primary fs-3"></i>
+                        <div>
+                            <div class="location-title" id="location-name">Memuat lokasi...</div>
+                            <div class="muted mt-1" id="location-region">Indonesia</div>
+                            <div class="small muted mt-1" id="coordinates"></div>
+                        </div>
+                    </div>
+
+                    <div class="current-weather">
+                        <div class="row align-items-center g-3">
+                            <div class="col-md-5">
+                                <div class="d-flex align-items-center gap-3">
+                                    <img id="current-icon" class="weather-icon-lg" alt="Ikon cuaca" hidden>
+                                    <div>
+                                        <div class="main-temp">
+                                            <span id="current-temp">--</span><span>°C</span>
+                                        </div>
+                                        <div class="weather-description mt-2" id="current-desc">
+                                            Memuat...
+                                        </div>
+                                        <div class="small muted mt-2" id="current-time"></div>
+                                        <div class="small text-primary mt-2" id="feels-note">
+                                            Data prakiraan BMKG
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-7">
+                                <div class="row row-cols-2 g-2">
+                                    <div class="col">
+                                        <div class="metric">
+                                            <div class="d-flex gap-2 align-items-center">
+                                                <i class="bi bi-droplet metric-icon"></i>
+                                                <span class="metric-label">Kelembapan</span>
+                                            </div>
+                                            <div class="metric-value mt-2" id="current-humidity">--</div>
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="metric">
+                                            <div class="d-flex gap-2 align-items-center">
+                                                <i class="bi bi-wind metric-icon"></i>
+                                                <span class="metric-label">Angin</span>
+                                            </div>
+                                            <div class="metric-value mt-2" id="current-wind">--</div>
+                                            <div class="small muted" id="current-wind-dir"></div>
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="metric">
+                                            <div class="d-flex gap-2 align-items-center">
+                                                <i class="bi bi-cloud-rain metric-icon"></i>
+                                                <span class="metric-label">Curah hujan</span>
+                                            </div>
+                                            <div class="metric-value mt-2" id="current-rain">--</div>
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="metric">
+                                            <div class="d-flex gap-2 align-items-center">
+                                                <i class="bi bi-eye metric-icon"></i>
+                                                <span class="metric-label">Jarak pandang</span>
+                                            </div>
+                                            <div class="metric-value mt-2" id="current-visibility">--</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="small muted mt-3">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Suhu dan kondisi di atas mengikuti slot prakiraan BMKG terdekat,
+                        bukan pengukuran langsung dari sensor.
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <h2 class="section-title mb-0">Lokasi</h2>
+                        <i class="bi bi-map text-primary fs-5"></i>
+                    </div>
+                    <div class="map-placeholder">
+                        <i class="bi bi-geo-alt-fill mb-2"></i>
+                        <div class="fw-bold" id="map-location">Lokasi prakiraan</div>
+                        <div class="small mt-1">Peta berdasarkan koordinat API BMKG</div>
+                        <a id="map-link" href="https://www.openstreetmap.org/" target="_blank" rel="noopener"
+                            class="btn btn-light border mt-3">
+                            <i class="bi bi-map me-1"></i> Buka peta
+                        </a>
+                    </div>
+                    <div class="small muted mt-2">
+                        <i class="bi bi-clock me-1"></i>
+                        Zona waktu: <span id="timezone">--</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Prakiraan tiga hari -->
+        <section class="panel">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+                <div class="d-flex align-items-center">
+                    <span class="section-icon"><i class="bi bi-calendar3"></i></span>
+                    <h2 class="section-title mb-0">Prakiraan Cuaca</h2>
+                </div>
+                <span class="small muted" id="forecast-count">Prakiraan 3 hari</span>
+            </div>
+
+            <div id="day-tabs" class="day-tabs mb-4">
+                <div class="loading w-100">Memuat prakiraan...</div>
+            </div>
+
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <h3 class="fw-bold fs-6 mb-0" id="selected-day-title">Prakiraan per waktu</h3>
+                <span class="small muted">Waktu lokal</span>
+            </div>
+
+            <div id="forecast-grid" class="forecast-grid">
+                <div class="loading">Mengambil data BMKG...</div>
+            </div>
+        </section>
+
+        <!-- Statistik dan ringkasan -->
+        <section class="panel">
+            <div class="d-flex align-items-center mb-4">
+                <span class="section-icon"><i class="bi bi-bar-chart-line"></i></span>
+                <h2 class="section-title mb-0">Statistik Prakiraan</h2>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-6 col-lg-3">
+                    <div class="stat-card">
+                        <div class="muted"><i class="bi bi-thermometer-half text-primary me-1"></i> Suhu tertinggi</div>
+                        <div class="stat-number"><span id="max-temp">--</span>°C</div>
+                        <div class="small muted" id="max-temp-time">Hari terpilih</div>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <div class="stat-card">
+                        <div class="muted"><i class="bi bi-thermometer-low text-primary me-1"></i> Suhu terendah</div>
+                        <div class="stat-number"><span id="min-temp">--</span>°C</div>
+                        <div class="small muted" id="min-temp-time">Hari terpilih</div>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <div class="stat-card">
+                        <div class="muted"><i class="bi bi-droplet text-primary me-1"></i> Kelembapan rata-rata</div>
+                        <div class="stat-number"><span id="avg-humidity">--</span>%</div>
+                        <div class="small muted">Hari terpilih</div>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <div class="stat-card">
+                        <div class="muted"><i class="bi bi-cloud-rain text-primary me-1"></i> Total curah hujan</div>
+                        <div class="stat-number"><span id="total-rain">--</span><small class="fs-6"> mm</small></div>
+                        <div class="small muted">Akumulasi slot prakiraan</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-3 mt-1">
+                <div class="col-lg-7">
+                    <div class="stat-card">
+                        <div class="fw-bold mb-2">
+                            <i class="bi bi-cloud-sun text-primary me-1"></i>
+                            Ringkasan kondisi cuaca
+                        </div>
+                        <div id="weather-summary" class="summary-box">
+                            Menyiapkan ringkasan prakiraan...
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-5">
+                    <div class="stat-card">
+                        <div class="fw-bold mb-3">
+                            <i class="bi bi-clouds text-primary me-1"></i>
+                            Tutupan awan
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="muted">Rata-rata tutupan awan</span>
+                            <strong id="avg-cloud">--</strong>
+                        </div>
+                        <div class="rain-bar">
+                            <div id="cloud-bar" style="width:0%"></div>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <div class="d-flex justify-content-between">
+                            <span class="muted">Kecepatan angin maksimum</span>
+                            <strong id="max-wind">--</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mt-3">
+                            <span class="muted">Arah angin dominan</span>
+                            <strong id="dominant-wind">--</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mt-3">
+                            <span class="muted">Jumlah data</span>
+                            <strong id="stat-count">--</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sumber data -->
+        <section class="source-box mb-3">
+            <div class="d-flex gap-3">
+                <i class="bi bi-shield-check text-success fs-3"></i>
+                <div>
+                    <div class="fw-bold mb-1">Sumber data resmi BMKG</div>
+                    <p class="mb-2">
+                        Informasi prakiraan cuaca bersumber dari Badan Meteorologi,
+                        Klimatologi, dan Geofisika (BMKG). Prakiraan dapat berubah
+                        mengikuti pemutakhiran data resmi.
+                    </p>
+                    <a href="https://www.bmkg.go.id/" target="_blank" rel="noopener"
+                        class="btn btn-light border btn-sm">
+                        <i class="bi bi-box-arrow-up-right me-1"></i> Website BMKG
+                    </a>
+                    <a href="https://data.bmkg.go.id/prakiraan-cuaca/" target="_blank" rel="noopener"
+                        class="btn btn-light border btn-sm ms-1">
+                        Dokumentasi data
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <footer class="footer">
+            Data prakiraan cuaca: BMKG · Antarmuka informasi cuaca
+            <div id="footer-update" class="mt-1"></div>
+        </footer>
+    </main>
+
+    <script>
+        (() => {
+            'use strict';
+
+            // Ganti kode ADM4 sesuai desa/kelurahan yang ingin dipantau.
+            const ADM4 = '35.02.15.2002';
+            const API_URL =
+                'https://api.bmkg.go.id/publik/prakiraan-cuaca?adm4=' +
+                encodeURIComponent(ADM4);
+
+            let allForecasts = [];
+            let selectedDate = '';
+            let locationData = {};
+
+            const $id = id => document.getElementById(id);
+
+            function setText(id, value) {
+                $id(id).textContent =
+                    value === null || value === undefined || value === ''
+                        ? '--'
+                        : value;
+            }
+
+            function numberOrNull(value) {
+                if (value === null || value === undefined || value === '') return null;
+                const n = Number(value);
+                return Number.isFinite(n) ? n : null;
+            }
+
+            function formatNumber(value, digits = 0) {
+                const n = numberOrNull(value);
+                return n === null ? '--' : n.toLocaleString('id-ID', {
+                    maximumFractionDigits: digits,
+                    minimumFractionDigits: 0
+                });
+            }
+
+            function parseDate(value) {
+                if (!value) return null;
+
+                // API BMKG umumnya memberi local_datetime:
+                // YYYY-MM-DD HH:mm:ss (waktu lokal).
+                const match = String(value).match(
+                    /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/
+                );
+
+                if (match) {
+                    return {
+                        date: `${match[1]}-${match[2]}-${match[3]}`,
+                        hour: Number(match[4]),
+                        minute: Number(match[5] || 0),
+                        raw: value
+                    };
+                }
+
+                const d = new Date(value);
+                if (Number.isNaN(d.getTime())) return null;
+
+                return {
+                    date: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
+                    hour: d.getHours(),
+                    minute: d.getMinutes(),
+                    raw: value
+                };
+            }
+
+            function dayLabel(dateString) {
+                const d = new Date(dateString + 'T12:00:00');
+                const today = new Date();
+                const todayString = [
+                    today.getFullYear(),
+                    String(today.getMonth() + 1).padStart(2, '0'),
+                    String(today.getDate()).padStart(2, '0')
+                ].join('-');
+
+                const tomorrow = new Date(today);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                const tomorrowString = [
+                    tomorrow.getFullYear(),
+                    String(tomorrow.getMonth() + 1).padStart(2, '0'),
+                    String(tomorrow.getDate()).padStart(2, '0')
+                ].join('-');
+
+                if (dateString === todayString) return 'Hari ini';
+                if (dateString === tomorrowString) return 'Besok';
+                if (d.toDateString() === today.toDateString()) return 'Hari ini';
+
+                return new Intl.DateTimeFormat('id-ID', {
+                    weekday: 'long'
+                }).format(d);
+            }
+
+            function formatDate(dateString) {
+                const d = new Date(dateString + 'T12:00:00');
+                return new Intl.DateTimeFormat('id-ID', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric'
+                }).format(d);
+            }
+
+            function formatTime(item) {
+                const parsed = parseDate(item.local_datetime);
+                if (!parsed) return '--:--';
+
+                return String(parsed.hour).padStart(2, '0') + ':' +
+                    String(parsed.minute).padStart(2, '0');
+            }
+
+            function safeImageUrl(url) {
+                try {
+                    const parsed = new URL(url);
+                    if (parsed.protocol === 'https:' &&
+                        (parsed.hostname === 'bmkg.go.id' ||
+                            parsed.hostname.endsWith('.bmkg.go.id'))) {
+                        return parsed.href;
+                    }
+                } catch (_) { }
+
+                return '';
+            }
+
+            function createWeatherIcon(item, sizeClass = 'weather-icon') {
+                const imageUrl = safeImageUrl(item.image);
+                const img = document.createElement('img');
+                img.className = sizeClass;
+                img.alt = item.weather_desc || 'Ikon cuaca';
+                img.loading = 'lazy';
+
+                if (imageUrl) {
+                    img.src = imageUrl;
+                    img.onerror = () => {
+                        img.hidden = true;
+                        const fallback = document.createElement('i');
+                        fallback.className =
+                            'bi bi-cloud-sun text-primary fs-1 d-block';
+                        img.replaceWith(fallback);
+                    };
+                } else {
+                    img.hidden = true;
+                }
+
+                return img;
+            }
+
+            function flattenForecast(data) {
+                const result = [];
+
+                if (!Array.isArray(data?.data)) return result;
+
+                data.data.forEach(group => {
+                    const days = group?.cuaca;
+
+                    if (!Array.isArray(days)) return;
+
+                    days.forEach(day => {
+                        // Mendukung struktur array bertingkat dan array yang sudah flat.
+                        const items = Array.isArray(day) ? day : [day];
+
+                        items.forEach(item => {
+                            if (!item || typeof item !== 'object') return;
+
+                            const parsed = parseDate(item.local_datetime);
+
+                            if (!parsed) return;
+
+                            result.push({
+                                ...item,
+                                _date: parsed.date,
+                                _hour: parsed.hour,
+                                _minute: parsed.minute
+                            });
+                        });
+                    });
+                });
+
+                // Hilangkan data duplikat berdasarkan waktu lokal.
+                const unique = new Map();
+
+                result.forEach(item => {
+                    const key = item.local_datetime || `${item._date} ${item._hour}`;
+                    unique.set(key, item);
+                });
+
+                return [...unique.values()].sort((a, b) =>
+                    String(a.local_datetime).localeCompare(String(b.local_datetime))
+                );
+            }
+
+            function getCurrentForecast(items) {
+                if (!items.length) return null;
+
+                // Waktu API berupa waktu lokal. Bandingkan dengan jam lokal browser.
+                // Untuk pengguna di Indonesia, browser umumnya memakai WIB/WITA/WIT.
+                const now = new Date();
+
+                const browserDate = [
+                    now.getFullYear(),
+                    String(now.getMonth() + 1).padStart(2, '0'),
+                    String(now.getDate()).padStart(2, '0')
+                ].join('-');
+
+                const browserMinutes = now.getHours() * 60 + now.getMinutes();
+
+                const sameDay = items.filter(item => item._date === browserDate);
+
+                if (sameDay.length) {
+                    return sameDay.reduce((best, item) => {
+                        const minutes = item._hour * 60 + item._minute;
+                        const bestMinutes = best._hour * 60 + best._minute;
+
+                        return Math.abs(minutes - browserMinutes) <
+                            Math.abs(bestMinutes - browserMinutes)
+                            ? item : best;
+                    });
+                }
+
+                // Jika tanggal browser tidak tersedia, pilih slot terawal yang tersedia.
+                return items[0];
+            }
+
+            function setImage(id, item) {
+                const el = $id(id);
+                const url = safeImageUrl(item?.image);
+
+                if (!url) {
+                    el.hidden = true;
+                    return;
+                }
+
+                el.src = url;
+                el.alt = item.weather_desc || 'Kondisi cuaca';
+                el.hidden = false;
+            }
+
+            function renderLocation(data) {
+                locationData = data.lokasi || {};
+
+                const loc = locationData;
+                const nameParts = [
+                    loc.desa,
+                    loc.kecamatan ? 'Kec. ' + loc.kecamatan : null,
+                    loc.kotkab ? 'Kab. ' + loc.kotkab : (loc.kota ? 'Kab. ' + loc.kota : null)
+                ].filter(Boolean);
+
+                setText('location-name', nameParts.join(', ') || 'Lokasi prakiraan BMKG');
+                setText('location-region', loc.provinsi || 'Indonesia');
+                setText('timezone', loc.timezone || 'Waktu lokal API');
+
+                const lat = numberOrNull(loc.lat);
+                const lon = numberOrNull(loc.lon);
+
+                if (lat !== null && lon !== null) {
+                    setText('coordinates', `${lat.toFixed(4)}, ${lon.toFixed(4)}`);
+                    $id('map-link').href =
+                        `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=13/${lat}/${lon}`;
+                } else {
+                    setText('coordinates', '');
+                    $id('map-link').href = 'https://www.openstreetmap.org/';
+                }
+
+                setText('map-location', loc.desa || loc.kecamatan || 'Lokasi prakiraan');
+            }
+
+            function renderCurrent(item) {
+                if (!item) return;
+
+                setText('current-temp', formatNumber(item.t));
+                setText('current-desc', item.weather_desc || 'Data cuaca tidak tersedia');
+                setText('current-time', 'Prakiraan pukul ' + formatTime(item) + ' WIB');
+                setImage('current-icon', item);
+
+                setText('current-humidity',
+                    item.hu != null ? formatNumber(item.hu) + '%' : '--');
+
+                setText('current-wind',
+                    item.ws != null ? formatNumber(item.ws, 1) + ' km/jam' : '--');
+
+                setText('current-wind-dir', item.wd || '--');
+
+                setText('current-rain',
+                    item.tp != null ? formatNumber(item.tp, 1) + ' mm' : '--');
+
+                if (item.vs_text) {
+                    setText('current-visibility', item.vs_text);
+                } else if (item.vs != null) {
+                    setText('current-visibility',
+                        formatNumber(Number(item.vs) / 1000, 1) + ' km');
+                } else {
+                    setText('current-visibility', '--');
+                }
+            }
+
+            function renderDayTabs() {
+                const tabs = $id('day-tabs');
+                tabs.replaceChildren();
+
+                const dates = [...new Set(allForecasts.map(item => item._date))];
+
+                dates.forEach((date, index) => {
+                    const items = allForecasts.filter(item => item._date === date);
+                    const btn = document.createElement('button');
+
+                    btn.type = 'button';
+                    btn.className = 'day-tab' + (date === selectedDate ? ' active' : '');
+                    btn.setAttribute('aria-pressed', date === selectedDate ? 'true' : 'false');
+
+                    const label = document.createElement('div');
+                    label.className = 'fw-bold';
+                    label.textContent = dayLabel(date);
+
+                    const dateLabel = document.createElement('div');
+                    dateLabel.className = 'small mt-1';
+                    dateLabel.textContent = formatDate(date);
+
+                    const range = document.createElement('div');
+                    range.className = 'small mt-1';
+                    const temps = items.map(i => numberOrNull(i.t)).filter(v => v !== null);
+                    range.textContent = temps.length
+                        ? `${Math.min(...temps)}° – ${Math.max(...temps)}°C`
+                        : `${items.length} data`;
+
+                    btn.append(label, dateLabel, range);
+
+                    btn.addEventListener('click', () => {
+                        selectedDate = date;
+                        renderDayTabs();
+                        renderSelectedDay();
+                    });
+
+                    tabs.appendChild(btn);
+                });
+
+                setText('forecast-count', `${dates.length} hari · ${allForecasts.length} data`);
+            }
+
+            function renderForecastCard(item, index) {
+                const card = document.createElement('article');
+                card.className = 'forecast-card';
+
+                const time = document.createElement('div');
+                time.className = 'forecast-time text-center';
+                time.textContent = formatTime(item);
+
+                const iconWrap = document.createElement('div');
+                iconWrap.className = 'text-center my-2';
+                iconWrap.appendChild(createWeatherIcon(item));
+
+                const desc = document.createElement('div');
+                desc.className = 'forecast-desc text-center';
+                desc.textContent = item.weather_desc || 'Tidak diketahui';
+
+                const temp = document.createElement('div');
+                temp.className = 'forecast-temp text-center';
+                temp.textContent = item.t != null ? `${formatNumber(item.t)}°C` : '--';
+
+                card.append(time, iconWrap, desc, temp);
+
+                const details = [
+                    ['bi-droplet', item.hu != null ? `${formatNumber(item.hu)}%` : '--'],
+                    ['bi-wind', item.ws != null ? `${formatNumber(item.ws, 1)} km/jam` : '--'],
+                    ['bi-compass', item.wd || '--'],
+                    ['bi-cloud-rain', item.tp != null ? `${formatNumber(item.tp, 1)} mm hujan` : 'Hujan: --'],
+                    ['bi-clouds', item.tcc != null ? `${formatNumber(item.tcc)}% awan` : null],
+                    ['bi-eye', item.vs_text || (item.vs != null
+                        ? `${formatNumber(Number(item.vs) / 1000, 1)} km`
+                        : null)]
+                ];
+
+                details.forEach(([icon, value]) => {
+                    if (value === null) return;
+
+                    const row = document.createElement('div');
+                    row.className = 'forecast-detail';
+
+                    const i = document.createElement('i');
+                    i.className = `bi ${icon}`;
+
+                    const span = document.createElement('span');
+                    span.textContent = value;
+
+                    row.append(i, span);
+                    card.appendChild(row);
+                });
+
+                return card;
+            }
+
+            function renderSelectedDay() {
+                const items = allForecasts.filter(item => item._date === selectedDate);
+                const grid = $id('forecast-grid');
+
+                grid.replaceChildren();
+
+                setText('selected-day-title',
+                    `Prakiraan ${dayLabel(selectedDate)} · ${formatDate(selectedDate)}`);
+
+                if (!items.length) {
+                    grid.textContent = 'Data prakiraan untuk hari ini tidak tersedia.';
+                    return;
+                }
+
+                items.forEach((item, index) => {
+                    grid.appendChild(renderForecastCard(item, index));
+                });
+
+                renderStatistics(items);
+            }
+
+            function renderStatistics(items) {
+                const numeric = key => items
+                    .map(item => numberOrNull(item[key]))
+                    .filter(value => value !== null);
+
+                const temps = numeric('t');
+                const humidity = numeric('hu');
+                const rain = numeric('tp');
+                const clouds = numeric('tcc');
+                const winds = numeric('ws');
+
+                const maxItem = items.reduce((best, item) => {
+                    const value = numberOrNull(item.t);
+                    const bestValue = numberOrNull(best?.t);
+                    return value !== null &&
+                        (bestValue === null || value > bestValue) ? item : best;
+                }, null);
+
+                const minItem = items.reduce((best, item) => {
+                    const value = numberOrNull(item.t);
+                    const bestValue = numberOrNull(best?.t);
+                    return value !== null &&
+                        (bestValue === null || value < bestValue) ? item : best;
+                }, null);
+
+                setText('max-temp', temps.length ? formatNumber(Math.max(...temps)) : '--');
+                setText('min-temp', temps.length ? formatNumber(Math.min(...temps)) : '--');
+
+                setText('max-temp-time', maxItem ? formatTime(maxItem) : '--');
+                setText('min-temp-time', minItem ? formatTime(minItem) : '--');
+
+                setText('avg-humidity', humidity.length
+                    ? formatNumber(humidity.reduce((a, b) => a + b, 0) / humidity.length)
+                    : '--');
+
+                setText('total-rain', rain.length
+                    ? formatNumber(rain.reduce((a, b) => a + b, 0), 1)
+                    : '--');
+
+                const avgCloud = clouds.length
+                    ? clouds.reduce((a, b) => a + b, 0) / clouds.length
+                    : null;
+
+                setText('avg-cloud', avgCloud === null
+                    ? '--' : `${formatNumber(avgCloud)}%`);
+
+                $id('cloud-bar').style.width =
+                    `${Math.max(0, Math.min(100, avgCloud || 0))}%`;
+
+                setText('max-wind', winds.length
+                    ? `${formatNumber(Math.max(...winds), 1)} km/jam`
+                    : '--');
+
+                const directionCount = {};
+
+                items.forEach(item => {
+                    if (item.wd) {
+                        directionCount[item.wd] = (directionCount[item.wd] || 0) + 1;
+                    }
+                });
+
+                const dominantDirection = Object.entries(directionCount)
+                    .sort((a, b) => b[1] - a[1])[0]?.[0];
+
+                setText('dominant-wind', dominantDirection || '--');
+                setText('stat-count', `${items.length} slot`);
+
+                const rainSum = rain.length
+                    ? rain.reduce((a, b) => a + b, 0) : null;
+
+                const summary = [];
+
+                if (temps.length) {
+                    summary.push(
+                        `Suhu diprakirakan berkisar ${formatNumber(Math.min(...temps))}–${formatNumber(Math.max(...temps))}°C.`
+                    );
+                }
+
+                if (humidity.length) {
+                    summary.push(
+                        `Kelembapan berada pada rentang ${formatNumber(Math.min(...humidity))}–${formatNumber(Math.max(...humidity))}%.`
+                    );
+                }
+
+                if (rainSum !== null) {
+                    summary.push(rainSum > 0
+                        ? `Akumulasi nilai curah hujan pada slot yang tersedia: ${formatNumber(rainSum, 1)} mm.`
+                        : 'Nilai curah hujan pada slot prakiraan yang tersedia tercatat 0 mm.');
+                }
+
+                const descriptions = [...new Set(
+                    items.map(item => item.weather_desc).filter(Boolean)
+                )];
+
+                if (descriptions.length) {
+                    summary.push(`Kondisi yang diprakirakan: ${descriptions.join(', ')}.`);
+                }
+
+                $id('weather-summary').textContent =
+                    summary.join(' ') || 'Belum tersedia cukup data untuk menyusun ringkasan.';
+            }
+
+            async function loadWeather() {
+                const button = $id('refresh-btn');
+                const status = $id('app-status');
+
+                button.disabled = true;
+                button.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Memuat';
+
+                status.replaceChildren();
+
+                try {
+                    const response = await fetch(API_URL, {
+                        method: 'GET',
+                        headers: { 'Accept': 'application/json' },
+                        cache: 'no-store'
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Server BMKG mengembalikan HTTP ${response.status}.`);
+                    }
+
+                    const data = await response.json();
+
+                    if (!data || !data.lokasi || !Array.isArray(data.data)) {
+                        throw new Error('Format data BMKG tidak sesuai atau data lokasi tidak ditemukan.');
+                    }
+
+                    allForecasts = flattenForecast(data);
+
+                    if (!allForecasts.length) {
+                        throw new Error('Data prakiraan belum tersedia untuk lokasi ini.');
+                    }
+
+                    renderLocation(data);
+
+                    const current = getCurrentForecast(allForecasts);
+                    renderCurrent(current);
+
+                    const dates = [...new Set(allForecasts.map(item => item._date))];
+
+                    if (!dates.includes(selectedDate)) {
+                        selectedDate = current?._date || dates[0];
+                    }
+
+                    renderDayTabs();
+                    renderSelectedDay();
+
+                    const updatedAt = new Date().toLocaleString('id-ID', {
+                        dateStyle: 'medium',
+                        timeStyle: 'short'
+                    });
+
+                    setText('update-time', `Data diambil ${updatedAt}`);
+                    setText('footer-update', `Terakhir diambil: ${updatedAt}`);
+
+                } catch (error) {
+                    console.error('Gagal mengambil prakiraan BMKG:', error);
+
+                    const box = document.createElement('div');
+                    box.className = 'error-box mb-3';
+
+                    const title = document.createElement('div');
+                    title.className = 'fw-bold mb-1';
+                    title.textContent = 'Gagal memuat data cuaca';
+
+                    const message = document.createElement('div');
+                    message.textContent =
+                        `${error.message} Periksa koneksi internet, kode ADM4, atau coba lagi nanti.`;
+
+                    box.append(title, message);
+                    status.replaceChildren(box);
+
+                } finally {
+                    button.disabled = false;
+                    button.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i> Perbarui';
+                }
+            }
+
+            loadWeather();
+        })();
     </script>
 </body>
 </html>
