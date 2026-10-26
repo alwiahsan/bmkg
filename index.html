@@ -391,7 +391,7 @@
                     <span class="muted small" id="update-time">
                         <i class="bi bi-arrow-repeat"></i> Memuat data...
                     </span>
-                    <button id="refresh-btn" class="btn btn-blue" onclick="loadWeather()">
+                    <button id="refresh-btn" class="btn btn-blue">
                         <i class="bi bi-arrow-clockwise me-1"></i> Perbarui
                     </button>
                 </div>
@@ -529,6 +529,24 @@
 
             <div id="forecast-grid" class="forecast-grid">
                 <div class="loading">Mengambil data BMKG...</div>
+            </div>
+        </section>
+
+        <!-- Radar cuaca BMKG -->
+        <section class="panel">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                <div class="d-flex align-items-center">
+                    <span class="section-icon"><i class="bi bi-broadcast"></i></span>
+                    <div>
+                        <h2 class="section-title mb-0">Radar Cuaca BMKG</h2>
+                        <div class="small muted mt-1">
+                            Lihat sebaran hujan terkini melalui radar resmi BMKG.
+                        </div>
+                    </div>
+                </div>
+                <a href="https://www.bmkg.go.id/cuaca/radar" target="_blank" rel="noopener" class="btn btn-blue">
+                    <i class="bi bi-box-arrow-up-right me-1"></i> Buka Radar BMKG
+                </a>
             </div>
         </section>
 
@@ -1232,6 +1250,8 @@
                     button.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i> Perbarui';
                 }
             }
+
+            $id('refresh-btn').addEventListener('click', loadWeather);
 
             loadWeather();
         })();
